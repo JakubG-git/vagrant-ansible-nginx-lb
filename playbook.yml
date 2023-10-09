@@ -1,0 +1,60 @@
+---
+- name: Konfiguracja serwera WWW na platformie Nginx
+  hosts: webservers
+  become: true
+
+  tasks:
+    - name: Instalacja Nginx
+      package:
+        name: nginx
+        update_cache: true
+
+    - name: Kopiowanie pliku konfiguracyjnego Nginx
+      copy:
+        src: nginx.conf
+        dest: /etc/nginx/sites-available/default
+        mode: "0644"
+      notify: restart_nginx
+
+    - name: Kopiowanie index.html
+      template:
+        src: index.html.j2
+        dest: /usr/share/nginx/html/index.html
+        mode: "0644"
+      notify: restart_nginx
+  handlers:
+
+    - name: restart_nginx
+      service:
+        name: nginx
+        state: restarted
+
+- name: Konfiguracja Load Balancera
+  hosts: balancers
+  become: true
+
+
+  tasks:
+    - name: Instalacja Nginx
+      package:
+        name: nginx
+        update_cache: true
+    - name: Usuwanie configu default 
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: restart_nginx
+
+    - name: Kopiowanie pliku konfiguracyjnego Nginx
+      copy:
+        src: nginx_load.conf
+        dest: /etc/nginx/conf.d/load_balancer.conf
+        mode: "0644"
+      notify: restart_nginx
+  handlers:
+
+    - name: restart_nginx
+      service:
+        name: nginx
+        state: restarted
+...
